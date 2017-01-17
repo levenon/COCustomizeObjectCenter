@@ -7,8 +7,34 @@
 //
 
 #import "COCustomizeObjectCenter.h"
+#import <objc/runtime.h>
 
 const NSInteger COCustomizeObjectResultItemTypeIgnore = 0;
+
+@implementation NSMutableArray (Categories)
+
+- (void)intersectSet:(NSArray *)otherArray;{
+    NSMutableSet *etSelfSet = [NSMutableSet setWithArray:[self copy]];
+    NSSet *etOtherSet = [NSSet setWithArray:[otherArray copy]];
+    [etSelfSet intersectSet:etOtherSet];
+    [self setArray:[etSelfSet allObjects]];
+}
+
+- (void)minusSet:(NSArray *)otherArray;{
+    NSMutableSet *etSelfSet = [NSMutableSet setWithArray:[self copy]];
+    NSSet *etOtherSet = [NSSet setWithArray:[otherArray copy]];
+    [etSelfSet minusSet:etOtherSet];
+    [self setArray:[etSelfSet allObjects]];
+}
+
+- (void)unionSet:(NSArray *)otherArray;{
+    NSMutableSet *etSelfSet = [NSMutableSet setWithArray:[self copy]];
+    NSSet *etOtherSet = [NSSet setWithArray:[otherArray copy]];
+    [etSelfSet unionSet:etOtherSet];
+    [self setArray:[etSelfSet allObjects]];
+}
+
+@end
 
 @interface COCustomizeObjectCenterActionSetter : NSObject
 @property (nonatomic, assign) COCustomizeObjectCenter *container;
@@ -154,14 +180,10 @@ const NSInteger COCustomizeObjectResultItemTypeIgnore = 0;
     COCustomizeObjectResultItem *resultItem = [[COCustomizeObjectResultItem alloc] initWithObject:object tags:tags type:type];
     [[self mutableObjectResultItems] addObject:resultItem];
     
-    @weakify(self);
-    dispatch_async(dispatch_get_main_queue(), ^{
-        @strongify(self);
-        BOOL handled = [self handleObjectResultItem:resultItem delegate:nil];
-        if (handled && [resultItem type] == COCustomizeObjectResultItemTypeOnce) {
-            [[self mutableObjectResultItems] removeObject:resultItem];
-        }
-    });
+    BOOL handled = [self handleObjectResultItem:resultItem delegate:nil];
+    if (handled && [resultItem type] == COCustomizeObjectResultItemTypeOnce) {
+        [[self mutableObjectResultItems] removeObject:resultItem];
+    }
 }
 
 - (void)addAllTagObject:(id)object;{
@@ -186,12 +208,8 @@ const NSInteger COCustomizeObjectResultItemTypeIgnore = 0;
         ((NSObject *)delegate).customizeObjectCenterActionSetter.delegate = delegate;
         ((NSObject *)delegate).customizeObjectCenterActionSetter.container = self;
         [[self mutableRegisteredActions] addObject:action];
-        
-        @weakify(self);
-        dispatch_async(dispatch_get_main_queue(), ^{
-            @strongify(self);
-            [self handleObjectDelegate:delegate tag:tag];
-        });
+    
+        [self handleObjectDelegate:delegate tag:tag];
         return YES;
     }
     return NO;
